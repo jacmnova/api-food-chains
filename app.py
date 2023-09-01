@@ -58,9 +58,9 @@ app = Flask(__name__)
 CORS(app)
 
 # Configurar la URI de la base de datos PostgreSQL
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:BkWxI71VKKQ3hEiDDqJV@containers-us-west-197.railway.app:7764/railway'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@food-chains.cvc6fic9cofz.us-east-1.rds.amazonaws.com:5432/postgres'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-engine = create_engine('postgresql://postgres:BkWxI71VKKQ3hEiDDqJV@containers-us-west-197.railway.app:7764/railway')
+engine = create_engine('postgresql://postgres:postgres@food-chains.cvc6fic9cofz.us-east-1.rds.amazonaws.com:5432/postgres')
 connection = engine.connect()
 
 # Configuracion Local
@@ -655,7 +655,7 @@ class getClientesOmie(Resource):
     # Documentar la respuesta exitosa y el modelo devuelto
     @api.response(200, "Información del usuario", user_login)
     def get(self):
-        url_omie = 'https://app.omie.com.br/api/v1/geral/clientes/'
+        url_ = 'https://app.omie.com.br/api/v1/geral/clientes/'
         headers = {'Content-type': 'application/json'}
         data = {
             "call": "ListarClientes",
@@ -669,7 +669,7 @@ class getClientesOmie(Resource):
                 }
             ]
         }
-        response = requests.post(url_omie, headers=headers, data=json.dumps(data))
+        response = requests.post(url_, headers=headers, data=json.dumps(data))
         response_data = response.json()
         data = {
             "call": "ListarClientes",
@@ -683,9 +683,35 @@ class getClientesOmie(Resource):
                 }
             ]
         }
-        response = requests.post(url_omie, headers=headers, data=json.dumps(data))
+        response = requests.post(url_, headers=headers, data=json.dumps(data))
+
+        # Crea el DataFrame
         response_data = response.json()
-        return response_data, 200
+        df = pd.json_normalize(response_data['clientes_cadastro'])
+        data = df.to_dict(orient='records')
+        # Reemplazar NaN por None
+        diccionario_reemplazado = reemplazar_nan_con_none(data)
+        columns = df.columns.tolist()
+        datasend = {
+            "columns": columns,
+            "clientes_cadastro": diccionario_reemplazado
+        }
+
+        return datasend, 200
+
+def reemplazar_nan_con_none(objeto):
+    if isinstance(objeto, dict):
+        for clave, valor in objeto.items():
+            objeto[clave] = reemplazar_nan_con_none(valor)
+        return objeto
+    elif isinstance(objeto, list):
+        for i in range(len(objeto)):
+            objeto[i] = reemplazar_nan_con_none(objeto[i])
+        return objeto
+    elif pd.isna(objeto):
+        return None
+    else:
+        return objeto
 
 @api.route("/api/omie/geral/produtos/")
 class getPedidosOmie(Resource):
@@ -703,15 +729,14 @@ class getPedidosOmie(Resource):
             "param": [
                 {
                     "pagina": 1,
-                    "registros_por_pagina": 100,
-                    "apenas_importado_api": "N"
+                    "registros_por_pagina": 50,
+                    "apenas_importado_api": "N",
+                    "filtrar_apenas_omiepdv": "N"
                 }
             ]
         }
         response = requests.post(url_omie, headers=headers, data=json.dumps(data))
         response_data = response.json()
-
-        print(response_data)
 
         data = {
             "call": "ListarProdutos",
@@ -721,13 +746,73 @@ class getPedidosOmie(Resource):
                 {
                     "pagina": 1,
                     "registros_por_pagina": response_data['total_de_registros'],
-                    "apenas_importado_api": "N"
+                    "apenas_importado_api": "N",
+                    "filtrar_apenas_omiepdv": "N"
+                }
+            ]
+        }
+        response = requests.post(url_omie, headers=headers, data=json.dumps(data))
+        # Crea el DataFrame
+        response_data = response.json()
+        df = pd.json_normalize(response_data['produto_servico_cadastro'])
+        data = df.to_dict(orient='records')
+        # Reemplazar NaN por None
+        diccionario_reemplazado_all = reemplazar_nan_con_none(data)
+        columns = df.columns.tolist()
+
+        url_omie = 'https://app.omie.com.br/api/v1/geral/produtos/'
+        headers = {'Content-type': 'application/json'}
+        data = {
+            "call": "ListarProdutosResumido",
+            "app_key": "3458207541789",
+            "app_secret": "86976b5e3bdccbd7063e5c1666d6b039",
+            "param": [
+                {
+                    "pagina": 1,
+                    "registros_por_pagina": 50,
+                    "apenas_importado_api": "N",
+                    "filtrar_apenas_omiepdv": "N"
                 }
             ]
         }
         response = requests.post(url_omie, headers=headers, data=json.dumps(data))
         response_data = response.json()
-        return response_data, 200
+
+        data = {
+            "call": "ListarProdutosResumido",
+            "app_key": "3458207541789",
+            "app_secret": "86976b5e3bdccbd7063e5c1666d6b039",
+            "param": [
+                {
+                    "pagina": 1,
+                    "registros_por_pagina": response_data['total_de_registros'],
+                    "apenas_importado_api": "N",
+                    "filtrar_apenas_omiepdv": "N"
+                }
+            ]
+        }
+        response = requests.post(url_omie, headers=headers, data=json.dumps(data))
+        # Crea el DataFrame
+        response_data = response.json()
+        df = pd.json_normalize(response_data['produto_servico_resumido'])
+        data = df.to_dict(orient='records')
+        # Reemplazar NaN por None
+        diccionario_reemplazado_resume = reemplazar_nan_con_none(data)
+        columns_resume = df.columns.tolist()
+
+        datasend = {
+            "columns": columns,
+            "produto_servico_cadastro": diccionario_reemplazado_all,
+            "resume": {
+                "columns": columns_resume,
+                "produto_servico_cadastro": diccionario_reemplazado_resume,
+            }
+        }
+
+        return datasend, 200
+        #
+        # response_data = response.json()
+        # return response_data, 200
 
 @api.route("/api/omie/estoque/consulta/")
 class getEstoqueConsulta(Resource):
