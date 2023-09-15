@@ -968,21 +968,21 @@ class UserUploadFile(Resource):
 def saveDataFromUpload(file):
     connection.execute(text('''DELETE from "pedidos_temp";'''))
     nombres_nuevos = {
-        'CNPJ DISTRIBUIDOR': 'CNPJ_DISTRIBUIDOR',
+        'CNPJ_DISTRIBUIDOR': 'CNPJ_DISTRIBUIDOR',
         'DISTRIBUIOR': 'DISTRIBUIOR',
-        'CNPJ CLIENTE': 'CNPJ_CLIENTE',
+        'CNPJ_CLIENTE': 'CNPJ_CLIENTE',
         'CLIENTE': 'CLIENTE',
         'PEDIDO': 'PEDIDO',
-        'STATUS PEDIDO': 'STATUS_PEDIDO',
+        'STATUS_PEDIDO': 'STATUS_PEDIDO',
         'ENVIO': 'ENVIO',
         'CONFIRMAÇÃO': 'CONFIRMACAO',
         'FINAL': 'FINAL',
         'SKU': 'SKU',
         'QUANTIDADE': 'QUANTIDADE',
-        'NOME PRODUTO': 'NOME_PRODUTO',
-        'PRECO UNITARIO': 'PRECO_UNITARIO',
+        'NOME_PRODUTO': 'NOME_PRODUTO',
+        'PRECO_UNITARIO': 'PRECO_UNITARIO',
         'TOTAL': 'TOTAL',
-        'FORMA PAGAMENTO': 'FORMA_PAGAMENTO',
+        'FORMA_PAGAMENTO': 'FORMA_PAGAMENTO',
     }
 
     # Cambia los nombres de las columnas utilizando el método rename()
@@ -991,22 +991,21 @@ def saveDataFromUpload(file):
     for index, row in df.iterrows():
         store_table = PedidosTemp(
             ID=index,
-            CNPJ_DISTRIBUIDOR=row['CNPJ_DISTRIBUIDOR'],
-            DISTRIBUIOR=row['DISTRIBUIOR'],
-            CNPJ_CLIENTE=row['CNPJ_CLIENTE'],
-            CLIENTE=row['CLIENTE'],
-            PEDIDO=row['PEDIDO'],
-            STATUS_PEDIDO=row['STATUS_PEDIDO'],
-            ENVIO=row['ENVIO'],
-            CONFIRMACAO=row['CONFIRMACAO'],
-            FINAL=row['FINAL'],
-            SKU=row['SKU'],
-            QUANTIDADE=row['QUANTIDADE'],
-            NOME_PRODUTO=row['NOME_PRODUTO'],
-            PRECO_UNITARIO=row['PRECO_UNITARIO'],
-            TOTAL=row['TOTAL'],
-            FORMA_PAGAMENTO=row['FORMA_PAGAMENTO'],
-
+            CNPJ_DISTRIBUIDOR=row.get('CNPJ_DISTRIBUIDOR', None),
+            DISTRIBUIOR=row.get('DISTRIBUIOR', None),
+            CNPJ_CLIENTE=row.get('CNPJ_CLIENTE', None),
+            CLIENTE=row.get('CLIENTE', None),
+            PEDIDO=row.get('PEDIDO', None),
+            STATUS_PEDIDO=row.get('STATUS_PEDIDO', None),
+            ENVIO=row.get('ENVIO', None),
+            CONFIRMACAO=row.get('CONFIRMACAO', None),
+            FINAL=row.get('FINAL', None),
+            SKU=row.get('SKU', None),
+            QUANTIDADE=row.get('QUANTIDADE', None),
+            NOME_PRODUTO=row.get('NOME_PRODUTO', None),
+            PRECO_UNITARIO=row.get('PRECO_UNITARIO', None),
+            TOTAL=row.get('TOTAL', None),
+            FORMA_PAGAMENTO=row.get('FORMA_PAGAMENTO', None)
         )
         db.session.add(store_table)
 
