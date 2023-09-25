@@ -10,7 +10,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_cors import CORS
 from sqlalchemy.orm import Mapped
-from sqlalchemy import Column, Integer, String, Float, BigInteger, Boolean, JSON
+from sqlalchemy import Column, Integer, String, Float, BigInteger, Boolean, JSON, desc
 import json
 import smtplib
 from email.mime.text import MIMEText
@@ -58,10 +58,26 @@ app = Flask(__name__)
 CORS(app)
 
 # Configurar la URI de la base de datos PostgreSQL
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@food-chains.cvc6fic9cofz.us-east-1.rds.amazonaws.com:5432/postgres'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:BkWxI71VKKQ3hEiDDqJV@containers-us-west-197.railway.app:7764/railway'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-engine = create_engine('postgresql://postgres:postgres@food-chains.cvc6fic9cofz.us-east-1.rds.amazonaws.com:5432/postgres')
+engine = create_engine('postgresql://postgres:BkWxI71VKKQ3hEiDDqJV@containers-us-west-197.railway.app:7764/railway')
 connection = engine.connect()
+
+# Credenciales OMIE PRODUCCION
+# app_key = "3458207541789"
+# app_secret = "86976b5e3bdccbd7063e5c1666d6b039"
+# cod_categoria = '1.01.01'
+# cod_conta_correinte = '10116665761'
+
+# Credenciales OMIE TESTEO
+app_key = "38333295000"
+app_secret = "fed2163e2e8dccb53ff914ce9e2f1258"
+cod_categoria =  "1.01.03"
+cod_conta_correinte = "11850365"
+
+
+#URLS BASE
+URL_OMIE = 'https://app.omie.com.br/api/v1'
 
 # Configuracion Local
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:jacm1212@localhost:5432/foodChains'
@@ -172,6 +188,42 @@ class PedidosTemp(db.Model):
         self.TOTAL = TOTAL
         self.FORMA_PAGAMENTO = FORMA_PAGAMENTO
 
+class PedidoGenerate(db.Model):
+    __tablename__ = "pedidos_generados"
+    ID = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    NRO_PEDIDO =  db.Column(db.String)
+    CODIGO_CLIENTE_OMIE =  db.Column(db.String)
+    CODIGO_PEDIDO = db.Column(db.String)
+    CODIGO_PEDIDO_INTEGRACION_OMIE = db.Column(db.String)
+    DISTRIBUIDOR = db.Column(db.String)
+    FECHA_ENVIO = db.Column(db.String)
+    CODIGO_ESTADO = db.Column(db.String)
+    ESTADO_PEDIDO = db.Column(db.String)
+    NRO_ITEMS = db.Column(db.String)
+    TOTAL_PEDIDO = db.Column(db.String)
+    CNPJ_CLIENTE = db.Column(db.String)
+    JSON_ENVIO = db.Column(db.JSON)
+
+    def __init__(self, ID, NRO_PEDIDO, CODIGO_PEDIDO,CODIGO_CLIENTE_OMIE ,CODIGO_PEDIDO_INTEGRACION_OMIE, DISTRIBUIDOR, FECHA_ENVIO,
+                 CODIGO_ESTADO, ESTADO_PEDIDO, NRO_ITEMS, TOTAL_PEDIDO, CNPJ_CLIENTE, JSON_ENVIO):
+        self.ID = ID
+        self.NRO_PEDIDO = NRO_PEDIDO
+        self.CODIGO_CLIENTE_OMIE = CODIGO_CLIENTE_OMIE
+        self.CODIGO_PEDIDO = CODIGO_PEDIDO
+        self.CODIGO_PEDIDO_INTEGRACION_OMIE = CODIGO_PEDIDO_INTEGRACION_OMIE
+        self.DISTRIBUIDOR = DISTRIBUIDOR
+        self.FECHA_ENVIO = FECHA_ENVIO
+        self.CODIGO_ESTADO = CODIGO_ESTADO
+        self.ESTADO_PEDIDO = ESTADO_PEDIDO
+        self.NRO_ITEMS = NRO_ITEMS
+        self.TOTAL_PEDIDO = TOTAL_PEDIDO
+        self.CNPJ_CLIENTE = CNPJ_CLIENTE
+        self.JSON_ENVIO = JSON_ENVIO
+
+    @staticmethod
+    def get_all_ordered_by_id_desc():
+        return PedidoGenerate.query.order_by(desc(PedidoGenerate.ID)).all()
+
 class PedidosLog(db.Model):
     __tablename__ = "pedidos_log"
     ID = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -190,10 +242,11 @@ class PedidosLog(db.Model):
     PRECO_UNITARIO = db.Column(db.String)
     TOTAL = db.Column(db.String)
     FORMA_PAGAMENTO = db.Column(db.String)
+    JSON = db.Column(db.JSON)
 
     def __init__(self, ID, CNPJ_DISTRIBUIDOR, DISTRIBUIOR, CNPJ_CLIENTE, CLIENTE, PEDIDO,
                  STATUS_PEDIDO, ENVIO, CONFIRMACAO, FINAL, SKU, QUANTIDADE, NOME_PRODUTO,
-                 PRECO_UNITARIO, TOTAL, FORMA_PAGAMENTO):
+                 PRECO_UNITARIO, TOTAL, FORMA_PAGAMENTO, JSON):
         self.ID = ID
         self.CNPJ_DISTRIBUIDOR = CNPJ_DISTRIBUIDOR
         self.DISTRIBUIOR = DISTRIBUIOR
@@ -207,9 +260,10 @@ class PedidosLog(db.Model):
         self.SKU = SKU
         self.QUANTIDADE = QUANTIDADE
         self.NOME_PRODUTO = NOME_PRODUTO
-        self.PRECO_UNITARIO = PRECO_UNITARIO,
+        self.PRECO_UNITARIO = PRECO_UNITARIO
         self.TOTAL = TOTAL
         self.FORMA_PAGAMENTO = FORMA_PAGAMENTO
+        self.JSON = JSON
 
 # Crear una clase para representar a los usuarios
 class Users(UserMixin, db.Model):
@@ -266,7 +320,6 @@ def get_user_by_username(username, password):
         return user
     else:
         return
-
 
 # Crear una ruta para registrar un usuario
 @api.route("/api/user/register")
@@ -620,8 +673,8 @@ class getPedidosOmie(Resource):
         headers = {'Content-type': 'application/json'}
         data = {
             "call": "ListarPedidos",
-            "app_key": "3458207541789",
-            "app_secret": "86976b5e3bdccbd7063e5c1666d6b039",
+            "app_key": app_key,
+            "app_secret": app_secret,
             "param": [
                 {
                     "pagina": 1,
@@ -634,8 +687,8 @@ class getPedidosOmie(Resource):
         response_data = response.json()
         data = {
             "call": "ListarPedidos",
-            "app_key": "3458207541789",
-            "app_secret": "86976b5e3bdccbd7063e5c1666d6b039",
+            "app_key": app_key,
+            "app_secret": app_secret,
             "param": [
                 {
                     "pagina": 1,
@@ -659,8 +712,8 @@ class getClientesOmie(Resource):
         headers = {'Content-type': 'application/json'}
         data = {
             "call": "ListarClientes",
-            "app_key": "3458207541789",
-            "app_secret": "86976b5e3bdccbd7063e5c1666d6b039",
+            "app_key": app_key,
+            "app_secret": app_secret,
             "param": [
                 {
                     "pagina": 1,
@@ -673,8 +726,8 @@ class getClientesOmie(Resource):
         response_data = response.json()
         data = {
             "call": "ListarClientes",
-            "app_key": "3458207541789",
-            "app_secret": "86976b5e3bdccbd7063e5c1666d6b039",
+            "app_key": app_key,
+            "app_secret": app_secret,
             "param": [
                 {
                     "pagina": 1,
@@ -696,6 +749,8 @@ class getClientesOmie(Resource):
             "columns": columns,
             "clientes_cadastro": diccionario_reemplazado
         }
+
+
 
         return datasend, 200
 
@@ -724,8 +779,8 @@ class getPedidosOmie(Resource):
         headers = {'Content-type': 'application/json'}
         data = {
             "call": "ListarProdutos",
-            "app_key": "3458207541789",
-            "app_secret": "86976b5e3bdccbd7063e5c1666d6b039",
+            "app_key": app_key,
+            "app_secret": app_secret,
             "param": [
                 {
                     "pagina": 1,
@@ -740,8 +795,8 @@ class getPedidosOmie(Resource):
 
         data = {
             "call": "ListarProdutos",
-            "app_key": "3458207541789",
-            "app_secret": "86976b5e3bdccbd7063e5c1666d6b039",
+            "app_key": app_key,
+            "app_secret": app_secret,
             "param": [
                 {
                     "pagina": 1,
@@ -764,8 +819,8 @@ class getPedidosOmie(Resource):
         headers = {'Content-type': 'application/json'}
         data = {
             "call": "ListarProdutosResumido",
-            "app_key": "3458207541789",
-            "app_secret": "86976b5e3bdccbd7063e5c1666d6b039",
+            "app_key": app_key,
+            "app_secret": app_secret,
             "param": [
                 {
                     "pagina": 1,
@@ -780,8 +835,8 @@ class getPedidosOmie(Resource):
 
         data = {
             "call": "ListarProdutosResumido",
-            "app_key": "3458207541789",
-            "app_secret": "86976b5e3bdccbd7063e5c1666d6b039",
+            "app_key": app_key,
+            "app_secret": app_secret,
             "param": [
                 {
                     "pagina": 1,
@@ -837,8 +892,8 @@ def callToActionStockOmie(fecha_hoy_str,regPerPage):
     headers = {'Content-type': 'application/json'}
     data = {
         "call": "ListarPosEstoque",
-        "app_key": "3458207541789",
-        "app_secret": "86976b5e3bdccbd7063e5c1666d6b039",
+        "app_key": app_key,
+        "app_secret": app_secret,
         "param": [
             {
                 "nPagina": 1,
@@ -881,26 +936,23 @@ def get_pedidos():
 
 @app.route('/api/pedidos/log', methods=['GET'])
 def get_pedidos_log():
-    pedidos = PedidosLog.query.all()
+    pedidos = PedidoGenerate.get_all_ordered_by_id_desc()
     pedidos_data = []
     for pedido in pedidos:
         pedido_data = {
             'ID': pedido.ID,
-            'CNPJ_DISTRIBUIDOR': pedido.CNPJ_DISTRIBUIDOR,
-            'DISTRIBUIDOR': pedido.DISTRIBUIOR,
+            'NRO_PEDIDO': pedido.NRO_PEDIDO,
+            'CODIGO_CLIENTE_OMIE': pedido.CODIGO_CLIENTE_OMIE,
+            'CODIGO_PEDIDO': pedido.CODIGO_PEDIDO,
+            'CODIGO_PEDIDO_INTEGRACION_OMIE': pedido.CODIGO_PEDIDO_INTEGRACION_OMIE,
+            'DISTRIBUIDOR': pedido.DISTRIBUIDOR,
+            'FECHA_ENVIO': pedido.FECHA_ENVIO,
+            'CODIGO_ESTADO': pedido.CODIGO_ESTADO,
+            'ESTADO_PEDIDO': pedido.ESTADO_PEDIDO,
+            'NRO_ITEMS': pedido.NRO_ITEMS,
+            'TOTAL_PEDIDO': pedido.TOTAL_PEDIDO,
             'CNPJ_CLIENTE': pedido.CNPJ_CLIENTE,
-            'CLIENTE': pedido.CLIENTE,
-            'PEDIDO': pedido.PEDIDO,
-            'STATUS_PEDIDO': pedido.STATUS_PEDIDO,
-            'ENVIO': pedido.ENVIO,
-            'CONFIRMACAO': pedido.CONFIRMACAO,
-            'FINAL': pedido.FINAL,
-            'SKU': pedido.SKU,
-            'QUANTIDADE': pedido.QUANTIDADE,
-            'NOME_PRODUTO': pedido.NOME_PRODUTO,
-            'PRECO_UNITARIO': pedido.PRECO_UNITARIO,
-            'TOTAL': pedido.TOTAL,
-            'FORMA_PAGAMENTO': pedido.FORMA_PAGAMENTO
+            'JSON_ENVIO': pedido.JSON_ENVIO,
         }
         pedidos_data.append(pedido_data)
 
@@ -908,7 +960,6 @@ def get_pedidos_log():
 
 def validateHeader(headers):
     pass
-
 
 def validate_header(header_row):
     expected_headers = [
@@ -939,7 +990,6 @@ def validate_header(header_row):
             return False
 
     return True
-
 
 @api.route('/api/omie/cargar', methods=['POST'])
 class UserUploadFile(Resource):
@@ -987,6 +1037,12 @@ def saveDataFromUpload(file):
 
     # Cambia los nombres de las columnas utilizando el método rename()
     df = file.rename(columns=nombres_nuevos)
+
+    # Elimina los puntos decimales y el cero de las columnas numéricas
+    columnas_numericas = ['CNPJ_DISTRIBUIDOR', 'PEDIDO', 'SKU', 'QUANTIDADE']
+    for columna in columnas_numericas:
+        df[columna] = df[columna].astype(str).apply(lambda x: x.split('.')[0])
+
     # Itera sobre los registros del DataFrame y crea una instancia de la clase StoreTable para cada uno
     for index, row in df.iterrows():
         store_table = PedidosTemp(
@@ -1012,7 +1068,233 @@ def saveDataFromUpload(file):
     # Confirma los cambios en la base de datos
     connection.commit()
     db.session.commit()
+@api.route('/api/omie/GenerarPedido')
+class GenerarPedido(Resource):
+    @api.doc(security="apikey")
 
+    def get(self):
+        pedidos_data = ejecutar_GenerarPedido()
+
+        return pedidos_data
+
+def ejecutar_GenerarPedido():
+    pedidos = []
+    df_Clientes = call_api_clientes()
+    df_Productos = call_api_productos()
+    array_Pedidos_Agrupados = connection.execute(text('''
+    SELECT COUNT(pt."PEDIDO"), pt."PEDIDO", SUM(CAST(pt."QUANTIDADE" AS numeric)) 
+    FROM pedidos_temp pt 
+    GROUP BY pt."PEDIDO"
+    '''))
+    fecha_actual = datetime.datetime.now()
+    fecha_formateada = fecha_actual.strftime('%d/%m/%Y')
+
+    result_index = connection.execute(text(''' select 
+                        case when max("ID") is null then 0 else max("ID") end
+                        from pedidos_generados pg '''))
+    for i in result_index:
+        index = i[0]
+    if index != 0:
+        index = index + 1
+    for pedido in array_Pedidos_Agrupados:
+        data_pedido = PedidosTemp.query.filter_by(PEDIDO=pedido[1]).first()
+        if data_pedido:
+            cnpj_cliente = re.sub(r'\D', '', data_pedido.CNPJ_CLIENTE)
+            df_Clientes['cnpj_cpf'] = df_Clientes['cnpj_cpf'].str.replace(r'\D', '', regex=True)
+            filtered_df = df_Clientes[df_Clientes['cnpj_cpf'] == cnpj_cliente]
+
+            array_productos = []
+            productos = PedidosTemp.query.filter_by(PEDIDO=pedido[1])
+            codigo_pedido_integracao = 1
+            precio_total = 0
+            for i in productos:
+                filtered_df_productos = df_Productos[df_Productos['codigo_produto'] == int(i.SKU)]
+                print(filtered_df_productos)
+                aux_productos = {
+                        "ide": {
+                            "codigo_item_integracao": str(codigo_pedido_integracao)
+                        },
+                        "inf_adic": {
+                            "peso_bruto": str(filtered_df_productos['peso_bruto'].iloc[0]),
+                            "peso_liquido": str(filtered_df_productos['peso_liq'].iloc[0])
+                        },
+                        "produto": {
+                            "cfop": str(filtered_df_productos['cfop'].iloc[0]),
+                            "codigo_produto": str(filtered_df_productos['codigo_produto'].iloc[0]),
+                            "descricao": str(filtered_df_productos['descricao'].iloc[0]),
+                            "ncm": str(filtered_df_productos['ncm'].iloc[0]),
+                            "quantidade": str(i.QUANTIDADE),
+                            "unidade":  str(filtered_df_productos['unidade'].iloc[0]),
+                            "valor_unitario": str(i.PRECO_UNITARIO)
+                        }
+                    }
+                precio_total = precio_total + float(i.PRECO_UNITARIO)
+                codigo_pedido_integracao = codigo_pedido_integracao + 1
+                array_productos.append(aux_productos)
+
+            # RESPONSE A ENVIAR
+            aux = {
+                "cabecalho": {
+                    "codigo_cliente": str(filtered_df['codigo_cliente_omie'].iloc[0]),
+                    "codigo_pedido_integracao": data_pedido.PEDIDO,
+                    "data_previsao": fecha_formateada,
+                    "etapa": "10",
+                    "codigo_parcela": "999",
+                    "quantidade_itens": str(pedido[2])
+                },
+                "det": array_productos,
+                "informacoes_adicionais": {
+                    "codigo_categoria": cod_categoria,
+                    "codigo_conta_corrente": cod_conta_correinte,
+                    "consumidor_final": "S",
+                    "enviar_email": "N"
+                },
+            }
+
+            response = sendPedido(aux)
+
+            add_pedido_log = PedidoGenerate(
+                ID = index,
+                NRO_PEDIDO = response['codigo_pedido'],
+                CODIGO_PEDIDO = data_pedido.PEDIDO,
+                CODIGO_PEDIDO_INTEGRACION_OMIE = data_pedido.PEDIDO,
+                DISTRIBUIDOR = data_pedido.CNPJ_DISTRIBUIDOR,
+                FECHA_ENVIO = fecha_formateada,
+                CODIGO_ESTADO = response['codigo_status'],
+                ESTADO_PEDIDO = response['descricao_status'],
+                NRO_ITEMS = str(pedido[2]),
+                TOTAL_PEDIDO = precio_total,
+                CNPJ_CLIENTE = cnpj_cliente,
+                CODIGO_CLIENTE_OMIE = str(filtered_df['codigo_cliente_omie'].iloc[0]),
+                JSON_ENVIO = aux
+            )
+
+            db.session.add(add_pedido_log)
+
+            # Confirma los cambios en la base de datos
+            connection.commit()
+            db.session.commit()
+
+            pedidos.append(aux)
+            index = index + 1
+
+    return "Pedido generado", 200
+
+def sendPedido(pedido):
+    aux = None
+    array = [pedido]
+    headers = {'Content-type': 'application/json'}
+    data = {
+        "call": "IncluirPedido",
+        "app_key": app_key,
+        "app_secret": app_secret,
+        "param": array
+    }
+    response = requests.post(URL_OMIE + '/produtos/pedido/', headers=headers, data=json.dumps(data))
+
+    if response.status_code == 500:
+        response_data = response.json()
+        return {
+            "codigo_pedido": "",
+            "codigo_pedido_integracao": "",
+            "codigo_status": "ERROR",
+            "descricao_status": response_data["faultstring"],
+            "numero_pedido": ""
+        }
+    else:
+        response_data = response.json()
+        if response_data is not None:
+            codigo_pedido = response_data["codigo_pedido"]
+
+            # Convert the pedido code to a string if necessary
+            return {
+                "codigo_pedido": str(codigo_pedido),
+                "codigo_pedido_integracao": str(response_data["codigo_pedido_integracao"]),
+                "codigo_status": str(response_data["codigo_status"]),
+                "descricao_status": str(response_data["descricao_status"]),
+                "numero_pedido": str(response_data["numero_pedido"])
+            }
+        else:
+            return {
+                "codigo_pedido": "",
+                "codigo_pedido_integracao": "",
+                "codigo_status": "",
+                "descricao_status": "",
+                "numero_pedido": ""
+            }
+def call_api_clientes():
+    headers = {'Content-type': 'application/json'}
+    data = {
+        "call": "ListarClientes",
+        "app_key": app_key,
+        "app_secret": app_secret,
+        "param": [
+            {
+                "pagina": 1,
+                "registros_por_pagina": 100,
+                "apenas_importado_api": "N"
+            }
+        ]
+    }
+    response = requests.post(URL_OMIE + '/geral/clientes/', headers=headers, data=json.dumps(data))
+    response_data = response.json()
+    data = {
+        "call": "ListarClientes",
+        "app_key": app_key,
+        "app_secret": app_secret,
+        "param": [
+            {
+                "pagina": 1,
+                "registros_por_pagina": response_data['total_de_registros'],
+                "apenas_importado_api": "N"
+            }
+        ]
+    }
+    response = requests.post(URL_OMIE + '/geral/clientes/', headers=headers, data=json.dumps(data))
+
+    # Crea el DataFrame
+    response_data = response.json()
+    df = pd.json_normalize(response_data['clientes_cadastro'])
+
+    return df
+
+def call_api_productos():
+    url_omie = URL_OMIE + '/geral/produtos/'
+    headers = {'Content-type': 'application/json'}
+    data = {
+        "call": "ListarProdutos",
+        "app_key": app_key,
+        "app_secret": app_secret,
+        "param": [
+            {
+                "pagina": 1,
+                "registros_por_pagina": 50,
+                "apenas_importado_api": "N",
+                "filtrar_apenas_omiepdv": "N"
+            }
+        ]
+    }
+    response = requests.post(url_omie, headers=headers, data=json.dumps(data))
+    response_data = response.json()
+
+    data = {
+        "call": "ListarProdutos",
+        "app_key": app_key,
+        "app_secret": app_secret,
+        "param": [
+            {
+                "pagina": 1,
+                "registros_por_pagina": response_data['total_de_registros'],
+                "apenas_importado_api": "N",
+                "filtrar_apenas_omiepdv": "N"
+            }
+        ]
+    }
+    response = requests.post(url_omie, headers=headers, data=json.dumps(data))
+    # Crea el DataFrame
+    response_data = response.json()
+    df = pd.json_normalize(response_data['produto_servico_cadastro'])
+    return df
 
 # # Crear un contexto de aplicación
 with app.app_context():
