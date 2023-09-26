@@ -64,16 +64,16 @@ engine = create_engine('postgresql://postgres:BkWxI71VKKQ3hEiDDqJV@containers-us
 connection = engine.connect()
 
 # Credenciales OMIE PRODUCCION
-# app_key = "3458207541789"
-# app_secret = "86976b5e3bdccbd7063e5c1666d6b039"
-# cod_categoria = '1.01.01'
-# cod_conta_correinte = '10116665761'
+app_key = "3458207541789"
+app_secret = "86976b5e3bdccbd7063e5c1666d6b039"
+cod_categoria = '1.01.01'
+cod_conta_correinte = '10116665761'
 
 # Credenciales OMIE TESTEO
-app_key = "38333295000"
-app_secret = "fed2163e2e8dccb53ff914ce9e2f1258"
-cod_categoria =  "1.01.03"
-cod_conta_correinte = "11850365"
+# app_key = "38333295000"
+# app_secret = "fed2163e2e8dccb53ff914ce9e2f1258"
+# cod_categoria =  "1.01.03"
+# cod_conta_correinte = "11850365"
 
 
 #URLS BASE
@@ -1074,7 +1074,8 @@ class GenerarPedido(Resource):
 
     def get(self):
         pedidos_data = ejecutar_GenerarPedido()
-
+        delete = connection.execute(text('''delete from pedidos_temp '''))
+        connection.commit()
         return pedidos_data
 
 def ejecutar_GenerarPedido():
@@ -1303,4 +1304,4 @@ with app.app_context():
 
 # Ejecutar la aplicación si se ejecuta este archivo
 if __name__ == "__main__":
-    app.run(host="0.0.0.0")
+    app.run(host="0.0.0.0", port='7000', debug=True )
