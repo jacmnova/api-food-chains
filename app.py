@@ -1087,8 +1087,6 @@ class GenerarPedido(Resource):
 
     def get(self):
         pedidos_data = ejecutar_GenerarPedido()
-        delete = connection.execute(text('''delete from pedidos_temp '''))
-        connection.commit()
         return pedidos_data
 
 def ejecutar_GenerarPedido():
@@ -1188,6 +1186,9 @@ def ejecutar_GenerarPedido():
 
             db.session.add(add_pedido_log)
 
+            delete = connection.execute(text('''delete from pedidos_temp '''))
+            connection.commit()
+            db.session.commit()
             # Confirma los cambios en la base de datos
             connection.commit()
             db.session.commit()
