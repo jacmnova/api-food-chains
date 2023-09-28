@@ -1108,6 +1108,8 @@ def ejecutar_GenerarPedido():
         index = i[0]
     if index != 0:
         index = index + 1
+    else:
+        index = 1
     for pedido in array_Pedidos_Agrupados:
         data_pedido = PedidosTemp.query.filter_by(PEDIDO=pedido[1]).first()
         if data_pedido:
