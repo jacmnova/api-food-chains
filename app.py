@@ -1153,7 +1153,7 @@ def ejecutar_GenerarPedido():
                     "codigo_pedido_integracao": data_pedido.PEDIDO,
                     "data_previsao": fecha_formateada,
                     "etapa": "10",
-                    "codigo_parcela": "21",
+                    "codigo_parcela": "A21",
                     "quantidade_itens": str(pedido[2])
                 },
                 "det": array_productos,
