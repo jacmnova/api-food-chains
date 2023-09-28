@@ -669,6 +669,7 @@ class getPedidosOmie(Resource):
     # Documentar la respuesta exitosa y el modelo devuelto
     @api.response(200, "Información del usuario", user_login)
     def get(self):
+
         url_omie = 'https://app.omie.com.br/api/v1/produtos/pedido/'
         headers = {'Content-type': 'application/json'}
         data = {
@@ -678,28 +679,40 @@ class getPedidosOmie(Resource):
             "param": [
                 {
                     "pagina": 1,
-                    "registros_por_pagina": 100,
+                    "registros_por_pagina": 500,
                     "apenas_importado_api": "N"
                 }
             ]
         }
         response = requests.post(url_omie, headers=headers, data=json.dumps(data))
         response_data = response.json()
-        data = {
-            "call": "ListarPedidos",
-            "app_key": app_key,
-            "app_secret": app_secret,
-            "param": [
-                {
-                    "pagina": 1,
-                    "registros_por_pagina": response_data['total_de_registros'],
-                    "apenas_importado_api": "N"
-                }
-            ]
-        }
-        response = requests.post(url_omie, headers=headers, data=json.dumps(data))
-        response_data = response.json()
-        return response_data, 200
+
+        i = 1
+        array = []
+        paginado = response_data['total_de_paginas']
+        while i <= paginado:
+            url_omie = 'https://app.omie.com.br/api/v1/produtos/pedido/'
+            headers = {'Content-type': 'application/json'}
+            data = {
+                "call": "ListarPedidos",
+                "app_key": app_key,
+                "app_secret": app_secret,
+                "param": [
+                    {
+                        "pagina": i,
+                        "registros_por_pagina": 500,
+                        "apenas_importado_api": "N"
+                    }
+                ]
+            }
+            response = requests.post(url_omie, headers=headers, data=json.dumps(data))
+            response_data = response.json()
+
+            for pedido in response_data['pedido_venda_produto']:
+                array.append(pedido)
+            i = i + 1
+
+        return array, 200
 
 @api.route("/api/omie/geral/clientes/")
 class getClientesOmie(Resource):
@@ -1140,10 +1153,13 @@ def ejecutar_GenerarPedido():
                     "codigo_pedido_integracao": data_pedido.PEDIDO,
                     "data_previsao": fecha_formateada,
                     "etapa": "10",
-                    "codigo_parcela": "999",
+                    "codigo_parcela": "21",
                     "quantidade_itens": str(pedido[2])
                 },
                 "det": array_productos,
+                "frete": {
+                    "modalidade": "0"
+                },
                 "informacoes_adicionais": {
                     "codigo_categoria": cod_categoria,
                     "codigo_conta_corrente": cod_conta_correinte,
