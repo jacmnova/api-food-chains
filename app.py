@@ -562,8 +562,8 @@ def sendMailUser(username, mensaje, header):
     # Datos del servidor SMTP
     smtp_server = 'smtp.gmail.com'
     smtp_port = 587
-    smtp_username = 'niveabrproyect@gmail.com'
-    smtp_password = 'xugxhfcgfeoiqmur'
+    smtp_username = 'foodchainsapp@gmail.com'
+    smtp_password = 'uwjcvjbjoxjmfkjf'
 
     # Datos del mensaje
     from_addr = 'niveabrproyect@gmail.com'
@@ -1052,7 +1052,7 @@ def saveDataFromUpload(file):
     df = file.rename(columns=nombres_nuevos)
 
     # Elimina los puntos decimales y el cero de las columnas numéricas
-    columnas_numericas = ['CNPJ_DISTRIBUIDOR', 'PEDIDO', 'SKU', 'QUANTIDADE']
+    columnas_numericas = ['PEDIDO', 'SKU', 'QUANTIDADE']
     for columna in columnas_numericas:
         df[columna] = df[columna].astype(str).apply(lambda x: x.split('.')[0])
 
@@ -1087,6 +1087,7 @@ class GenerarPedido(Resource):
 
     def get(self):
         pedidos_data = ejecutar_GenerarPedido()
+        limpiar_pedidos_temp()
         return pedidos_data
 
 def ejecutar_GenerarPedido():
@@ -1111,6 +1112,7 @@ def ejecutar_GenerarPedido():
     else:
         index = 1
     for pedido in array_Pedidos_Agrupados:
+        print('ejecutando pedido', pedido)
         data_pedido = PedidosTemp.query.filter_by(PEDIDO=pedido[1]).first()
         if data_pedido:
             cnpj_cliente = re.sub(r'\D', '', data_pedido.CNPJ_CLIENTE)
@@ -1123,7 +1125,6 @@ def ejecutar_GenerarPedido():
             precio_total = 0
             for i in productos:
                 filtered_df_productos = df_Productos[df_Productos['codigo_produto'] == int(i.SKU)]
-                print(filtered_df_productos)
                 aux_productos = {
                         "ide": {
                             "codigo_item_integracao": str(codigo_pedido_integracao)
@@ -1133,7 +1134,8 @@ def ejecutar_GenerarPedido():
                             "peso_liquido": str(filtered_df_productos['peso_liq'].iloc[0])
                         },
                         "produto": {
-                            "cfop": str(filtered_df_productos['cfop'].iloc[0]),
+                            # "cfop": str(filtered_df_productos['cfop'].iloc[0]),
+                            "cfop": str(6102),
                             "codigo_produto": str(filtered_df_productos['codigo_produto'].iloc[0]),
                             "descricao": str(filtered_df_productos['descricao'].iloc[0]),
                             "ncm": str(filtered_df_productos['ncm'].iloc[0]),
@@ -1167,40 +1169,44 @@ def ejecutar_GenerarPedido():
                     "enviar_email": "N"
                 },
             }
+            try:
+                response = sendPedido(aux)
 
-            response = sendPedido(aux)
+                add_pedido_log = PedidoGenerate(
+                    ID = index,
+                    NRO_PEDIDO = response['codigo_pedido'],
+                    CODIGO_PEDIDO = data_pedido.PEDIDO,
+                    CODIGO_PEDIDO_INTEGRACION_OMIE = data_pedido.PEDIDO,
+                    DISTRIBUIDOR = data_pedido.CNPJ_DISTRIBUIDOR,
+                    FECHA_ENVIO = fecha_formateada,
+                    CODIGO_ESTADO = response['codigo_status'],
+                    ESTADO_PEDIDO = response['descricao_status'],
+                    NRO_ITEMS = str(pedido[2]),
+                    TOTAL_PEDIDO = precio_total,
+                    CNPJ_CLIENTE = cnpj_cliente,
+                    CODIGO_CLIENTE_OMIE = str(filtered_df['codigo_cliente_omie'].iloc[0]),
+                    JSON_ENVIO = aux
+                )
 
-            add_pedido_log = PedidoGenerate(
-                ID = index,
-                NRO_PEDIDO = response['codigo_pedido'],
-                CODIGO_PEDIDO = data_pedido.PEDIDO,
-                CODIGO_PEDIDO_INTEGRACION_OMIE = data_pedido.PEDIDO,
-                DISTRIBUIDOR = data_pedido.CNPJ_DISTRIBUIDOR,
-                FECHA_ENVIO = fecha_formateada,
-                CODIGO_ESTADO = response['codigo_status'],
-                ESTADO_PEDIDO = response['descricao_status'],
-                NRO_ITEMS = str(pedido[2]),
-                TOTAL_PEDIDO = precio_total,
-                CNPJ_CLIENTE = cnpj_cliente,
-                CODIGO_CLIENTE_OMIE = str(filtered_df['codigo_cliente_omie'].iloc[0]),
-                JSON_ENVIO = aux
-            )
+                db.session.add(add_pedido_log)
+                connection.commit()
+                db.session.commit()
 
-            db.session.add(add_pedido_log)
 
-            delete = connection.execute(text('''delete from pedidos_temp '''))
-            connection.commit()
-            db.session.commit()
-            # Confirma los cambios en la base de datos
-            connection.commit()
-            db.session.commit()
+                pedidos.append(aux)
 
-            pedidos.append(aux)
-            index = index + 1
-
+                index = index + 1
+            except:
+                index = index + 1
     return "Pedido generado", 200
 
+def limpiar_pedidos_temp():
+    delete = connection.execute(text('''delete from pedidos_temp '''))
+    connection.commit()
+    db.session.commit()
+
 def sendPedido(pedido):
+    print(pedido)
     aux = None
     array = [pedido]
     headers = {'Content-type': 'application/json'}
@@ -1242,6 +1248,7 @@ def sendPedido(pedido):
                 "descricao_status": "",
                 "numero_pedido": ""
             }
+
 def call_api_clientes():
     headers = {'Content-type': 'application/json'}
     data = {
