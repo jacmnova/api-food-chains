@@ -1126,6 +1126,12 @@ def ejecutar_GenerarPedido():
             for i in productos:
                 filtered_df_productos = df_Productos[df_Productos['codigo_produto'] == int(i.SKU)]
                 aux_productos = {
+                        "imposto": {
+                            "icms": {
+                                "cod_sit_trib_icms": "00",
+                                "modalidade_icms": "3"
+                            }
+                        },
                         "ide": {
                             "codigo_item_integracao": str(codigo_pedido_integracao)
                         },
@@ -1165,7 +1171,7 @@ def ejecutar_GenerarPedido():
                 "informacoes_adicionais": {
                     "codigo_categoria": cod_categoria,
                     "codigo_conta_corrente": cod_conta_correinte,
-                    "consumidor_final": "S",
+                    "consumidor_final": "N",
                     "enviar_email": "N"
                 },
             }
