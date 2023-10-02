@@ -1172,7 +1172,8 @@ def ejecutar_GenerarPedido():
                     "codigo_categoria": cod_categoria,
                     "codigo_conta_corrente": cod_conta_correinte,
                     "consumidor_final": "N",
-                    "enviar_email": "N"
+                    "enviar_email": "N",
+                    "dados_adicionais_nf": "ENTREGA NO ENDERECO: CEASA, AV.BRASIL, 19001 - PAVILHAO 56 - IRAJA, RIO DE JANEIRO - RJ, 21530 - 300"
                 },
             }
             try:
