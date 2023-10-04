@@ -1128,23 +1128,27 @@ def ejecutar_GenerarPedido():
                 aux_productos = {
                         "imposto": {
                             "icms": {
+                                "base_icms": str(i.PRECO_UNITARIO),
+                                "aliq_icms": "12",
                                 "cod_sit_trib_icms": "00",
                                 "modalidade_icms": "3"
                             },
                             "cofins_padrao": {
                                 "cod_sit_trib_cofins": "01",
                                 "tipo_calculo_cofins": "B",
-                                "aliq_cofins": 7.6
+                                "aliq_cofins": 7.6,
+                                "base_cofins": str(i.PRECO_UNITARIO),
                             },
                             "ipi": {
                                 "cod_sit_trib_ipi": 53,
                                 "enquadramento_ipi": "999"
                             },
                             "pis_padrao": {
+                                "base_pis": str(i.PRECO_UNITARIO),
                                 "cod_sit_trib_pis": "01",
                                 "tipo_calculo_pis": "B",
                                 "aliq_pis": 1.65
-                            }
+                            },
                         },
                         "ide": {
                             "codigo_item_integracao": str(codigo_pedido_integracao)
