@@ -1130,6 +1130,20 @@ def ejecutar_GenerarPedido():
                             "icms": {
                                 "cod_sit_trib_icms": "00",
                                 "modalidade_icms": "3"
+                            },
+                            "cofins_padrao": {
+                                "cod_sit_trib_cofins": "01",
+                                "tipo_calculo_cofins": "B",
+                                "aliq_cofins": 7.6
+                            },
+                            "ipi": {
+                                "cod_sit_trib_ipi": 53,
+                                "enquadramento_ipi": "999"
+                            },
+                            "pis_padrao": {
+                                "cod_sit_trib_pis": "01",
+                                "tipo_calculo_pis": "B",
+                                "aliq_pis": 1.65
                             }
                         },
                         "ide": {
@@ -1175,6 +1189,7 @@ def ejecutar_GenerarPedido():
                     "enviar_email": "N",
                     "dados_adicionais_nf": "ENTREGA NO ENDERECO: CEASA, AV. BRASIL, 19001 - PAVILHAO 56 - IRAJA, RIO DE JANEIRO - RJ, 21530-300"
                 },
+
             }
             try:
                 response = sendPedido(aux)
