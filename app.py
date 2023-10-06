@@ -1124,6 +1124,8 @@ def ejecutar_GenerarPedido():
             codigo_pedido_integracao = 1
             precio_total = 0
             aliq_cofins = 7.6
+            aliq_pis = 1.65
+            aliq_icms = 12
             for i in productos:
                 filtered_df_productos = df_Productos[df_Productos['codigo_produto'] == int(i.SKU)]
                 aux_productos = {
@@ -1133,7 +1135,7 @@ def ejecutar_GenerarPedido():
                                 "aliq_icms": "12",
                                 "cod_sit_trib_icms": "00",
                                 "modalidade_icms": "3",
-                                "valor_icms": str((float(i.TOTAL)*aliq_cofins)/100)
+                                "valor_icms": str((float(i.TOTAL)*aliq_icms)/100)
                             },
                             "cofins_padrao": {
                                 "cod_sit_trib_cofins": "01",
@@ -1148,10 +1150,10 @@ def ejecutar_GenerarPedido():
                             },
                             "pis_padrao": {
                                 "base_pis": str(i.TOTAL),
-                                "valor_pis": str((float(i.TOTAL)*aliq_cofins)/100),
+                                "valor_pis": str((float(i.TOTAL)*aliq_pis)/100),
                                 "cod_sit_trib_pis": "01",
                                 "tipo_calculo_pis": "B",
-                                "aliq_pis": 1.65
+                                "aliq_pis": aliq_pis
                             },
                         },
                         "ide": {
