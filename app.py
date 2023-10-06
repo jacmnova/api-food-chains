@@ -1129,10 +1129,10 @@ def ejecutar_GenerarPedido():
                 aux_productos = {
                         "imposto": {
                             "icms": {
-                                "cod_sit_trib_icms": "00",
-                                "modalidade_icms": "3",
                                 "base_icms": str(i.TOTAL),
                                 "aliq_icms": "12",
+                                "cod_sit_trib_icms": "00",
+                                "modalidade_icms": "3",
                                 "valor_icms": str((float(i.TOTAL)*aliq_cofins)/100)
                             },
                             "cofins_padrao": {
