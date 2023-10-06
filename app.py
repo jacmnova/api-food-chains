@@ -1140,7 +1140,7 @@ def ejecutar_GenerarPedido():
                                 "tipo_calculo_cofins": "B",
                                 "aliq_cofins": aliq_cofins,
                                 "base_cofins": str(i.TOTAL),
-                                "valor_confins": str((float(i.TOTAL)*aliq_cofins)/100)
+                                "valor_cofins": str((float(i.TOTAL)*aliq_cofins)/100)
                             },
                             "ipi": {
                                 "cod_sit_trib_ipi": 53,
