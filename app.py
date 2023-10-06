@@ -1123,28 +1123,32 @@ def ejecutar_GenerarPedido():
             productos = PedidosTemp.query.filter_by(PEDIDO=pedido[1])
             codigo_pedido_integracao = 1
             precio_total = 0
+            aliq_cofins = 7.6
             for i in productos:
                 filtered_df_productos = df_Productos[df_Productos['codigo_produto'] == int(i.SKU)]
                 aux_productos = {
                         "imposto": {
                             "icms": {
-                                "base_icms": str((float(i.TOTAL)*7.6)/100),
+                                "base_icms": str(i.TOTAL),
                                 "aliq_icms": "12",
                                 "cod_sit_trib_icms": "00",
-                                "modalidade_icms": "3"
+                                "modalidade_icms": "3",
+                                "valor_icms": str((float(i.TOTAL)*aliq_cofins)/100)
                             },
                             "cofins_padrao": {
                                 "cod_sit_trib_cofins": "01",
                                 "tipo_calculo_cofins": "B",
-                                "aliq_cofins": 7.6,
-                                "base_cofins": str((float(i.TOTAL)*7.6)/100),
+                                "aliq_cofins": aliq_cofins,
+                                "base_cofins": str(i.TOTAL),
+                                "valor_confins": str((float(i.TOTAL)*aliq_cofins)/100)
                             },
                             "ipi": {
                                 "cod_sit_trib_ipi": 53,
                                 "enquadramento_ipi": "999"
                             },
                             "pis_padrao": {
-                                "base_pis": str((float(i.TOTAL)*7.6)/100),
+                                "base_pis": str(i.TOTAL),
+                                "valor_pis": str((float(i.TOTAL)*aliq_cofins)/100),
                                 "cod_sit_trib_pis": "01",
                                 "tipo_calculo_pis": "B",
                                 "aliq_pis": 1.65
