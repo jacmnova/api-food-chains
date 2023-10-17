@@ -10,7 +10,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_cors import CORS
 from sqlalchemy.orm import Mapped
-from sqlalchemy import Column, Integer, String, Float, BigInteger, Boolean, JSON, desc
+from sqlalchemy import Column, Integer, String, Float, BigInteger, Boolean, JSON, desc, func
 import json
 import smtplib
 from email.mime.text import MIMEText
@@ -190,6 +190,42 @@ class PedidosTemp(db.Model):
 
 class PedidoGenerate(db.Model):
     __tablename__ = "pedidos_generados"
+    ID = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    NRO_PEDIDO =  db.Column(db.String)
+    CODIGO_CLIENTE_OMIE =  db.Column(db.String)
+    CODIGO_PEDIDO = db.Column(db.String)
+    CODIGO_PEDIDO_INTEGRACION_OMIE = db.Column(db.String)
+    DISTRIBUIDOR = db.Column(db.String)
+    FECHA_ENVIO = db.Column(db.String)
+    CODIGO_ESTADO = db.Column(db.String)
+    ESTADO_PEDIDO = db.Column(db.String)
+    NRO_ITEMS = db.Column(db.String)
+    TOTAL_PEDIDO = db.Column(db.String)
+    CNPJ_CLIENTE = db.Column(db.String)
+    JSON_ENVIO = db.Column(db.JSON)
+
+    def __init__(self, ID, NRO_PEDIDO, CODIGO_PEDIDO,CODIGO_CLIENTE_OMIE ,CODIGO_PEDIDO_INTEGRACION_OMIE, DISTRIBUIDOR, FECHA_ENVIO,
+                 CODIGO_ESTADO, ESTADO_PEDIDO, NRO_ITEMS, TOTAL_PEDIDO, CNPJ_CLIENTE, JSON_ENVIO):
+        self.ID = ID
+        self.NRO_PEDIDO = NRO_PEDIDO
+        self.CODIGO_CLIENTE_OMIE = CODIGO_CLIENTE_OMIE
+        self.CODIGO_PEDIDO = CODIGO_PEDIDO
+        self.CODIGO_PEDIDO_INTEGRACION_OMIE = CODIGO_PEDIDO_INTEGRACION_OMIE
+        self.DISTRIBUIDOR = DISTRIBUIDOR
+        self.FECHA_ENVIO = FECHA_ENVIO
+        self.CODIGO_ESTADO = CODIGO_ESTADO
+        self.ESTADO_PEDIDO = ESTADO_PEDIDO
+        self.NRO_ITEMS = NRO_ITEMS
+        self.TOTAL_PEDIDO = TOTAL_PEDIDO
+        self.CNPJ_CLIENTE = CNPJ_CLIENTE
+        self.JSON_ENVIO = JSON_ENVIO
+
+    @staticmethod
+    def get_all_ordered_by_id_desc():
+        return PedidoGenerate.query.order_by(desc(PedidoGenerate.ID)).all()
+
+class PedidoGenerateAux(db.Model):
+    __tablename__ = "pedidos_generados_aux"
     ID = db.Column(db.Integer, primary_key=True, autoincrement=True)
     NRO_PEDIDO =  db.Column(db.String)
     CODIGO_CLIENTE_OMIE =  db.Column(db.String)
@@ -1018,11 +1054,11 @@ class UserUploadFile(Resource):
 
         if extension == '.csv':
             df = pd.read_csv(file, sep=',')
-            print(df.columns)
+            df = df.dropna(how='all')
         elif extension == '.xlsx':
             df = pd.read_excel(file)
+            df = df.dropna(how='all')
             df.rename(columns=lambda x: x.replace(' ', ''), inplace=True)
-            print(df.columns)
         else:
             return "Archivo no admitido", 400
         saveDataFromUpload(df)
@@ -1058,25 +1094,26 @@ def saveDataFromUpload(file):
 
     # Itera sobre los registros del DataFrame y crea una instancia de la clase StoreTable para cada uno
     for index, row in df.iterrows():
-        store_table = PedidosTemp(
-            ID=index,
-            CNPJ_DISTRIBUIDOR=row.get('CNPJ_DISTRIBUIDOR', None),
-            DISTRIBUIOR=row.get('DISTRIBUIOR', None),
-            CNPJ_CLIENTE=row.get('CNPJ_CLIENTE', None),
-            CLIENTE=row.get('CLIENTE', None),
-            PEDIDO=row.get('PEDIDO', None),
-            STATUS_PEDIDO=row.get('STATUS_PEDIDO', None),
-            ENVIO=row.get('ENVIO', None),
-            CONFIRMACAO=row.get('CONFIRMACAO', None),
-            FINAL=row.get('FINAL', None),
-            SKU=row.get('SKU', None),
-            QUANTIDADE=row.get('QUANTIDADE', None),
-            NOME_PRODUTO=row.get('NOME_PRODUTO', None),
-            PRECO_UNITARIO=row.get('PRECO_UNITARIO', None),
-            TOTAL=row.get('TOTAL', None),
-            FORMA_PAGAMENTO=row.get('FORMA_PAGAMENTO', None)
-        )
-        db.session.add(store_table)
+        if row.get('CNPJ_DISTRIBUIDOR', None):
+            store_table = PedidosTemp(
+                ID=index,
+                CNPJ_DISTRIBUIDOR=row.get('CNPJ_DISTRIBUIDOR', None),
+                DISTRIBUIOR=row.get('DISTRIBUIOR', None),
+                CNPJ_CLIENTE=row.get('CNPJ_CLIENTE', None),
+                CLIENTE=row.get('CLIENTE', None),
+                PEDIDO=row.get('PEDIDO', None),
+                STATUS_PEDIDO=row.get('STATUS_PEDIDO', None),
+                ENVIO=row.get('ENVIO', None),
+                CONFIRMACAO=row.get('CONFIRMACAO', None),
+                FINAL=row.get('FINAL', None),
+                SKU=row.get('SKU', None),
+                QUANTIDADE=row.get('QUANTIDADE', None),
+                NOME_PRODUTO=row.get('NOME_PRODUTO', None),
+                PRECO_UNITARIO=row.get('PRECO_UNITARIO', None),
+                TOTAL=row.get('TOTAL', None),
+                FORMA_PAGAMENTO=row.get('FORMA_PAGAMENTO', None)
+            )
+            db.session.add(store_table)
 
     # Confirma los cambios en la base de datos
     connection.commit()
@@ -1087,11 +1124,18 @@ class GenerarPedido(Resource):
 
     def get(self):
         pedidos_data = ejecutar_GenerarPedido()
-        limpiar_pedidos_temp()
         return pedidos_data
+
+@api.route('/api/omie/GenerarPedido/enviar')
+class GenerarPedidoEnviar(Resource):
+    def post(self):
+        data = request.get_json()
+        gestorPedido(data)
+        return 'Pedido Enviado', 200
 
 def ejecutar_GenerarPedido():
     pedidos = []
+    errorPedidos = []
     df_Clientes = call_api_clientes()
     df_Productos = call_api_productos()
     array_Pedidos_Agrupados = connection.execute(text('''
@@ -1101,6 +1145,17 @@ def ejecutar_GenerarPedido():
     '''))
     fecha_actual = datetime.datetime.now()
     fecha_formateada = fecha_actual.strftime('%d/%m/%Y')
+
+    # Crear un objeto datetime con la hora actual en UTC
+    fecha_actual = datetime.datetime.now(pytz.utc)
+
+    # Convertir el objeto datetime a la zona horaria de Río de Janeiro
+    rio_tz = pytz.timezone('America/Sao_Paulo')
+    fecha_rio = fecha_actual.astimezone(rio_tz)
+
+    # Formatear el objeto datetime solo con la hora
+    hora_formateada = fecha_rio.strftime('%H:%M:%S')
+
 
     result_index = connection.execute(text(''' select 
                         case when max("ID") is null then 0 else max("ID") end
@@ -1123,122 +1178,169 @@ def ejecutar_GenerarPedido():
             productos = PedidosTemp.query.filter_by(PEDIDO=pedido[1])
             codigo_pedido_integracao = 1
             precio_total = 0
-            aliq_cofins = 7.6
-            aliq_pis = 1.65
-            aliq_icms = 12
             for i in productos:
-                filtered_df_productos = df_Productos[df_Productos['codigo_produto'] == int(i.SKU)]
-                aux_productos = {
-                        "imposto": {
-                            "icms": {
-                                "base_icms": str(i.TOTAL),
-                                "aliq_icms": "12",
-                                "cod_sit_trib_icms": "00",
-                                "modalidade_icms": "3",
-                                "valor_icms": str((float(i.TOTAL)*aliq_icms)/100)
+                if i.SKU != 'nan':
+                    filtered_df_productos = df_Productos[df_Productos['codigo_produto'] == int(i.SKU)]
+                    aux_productos = {
+                            "imposto": {
+                                "icms": {
+                                    "base_icms": str(i.TOTAL),
+                                    "aliq_icms": "12",
+                                    "cod_sit_trib_icms": "00",
+                                    "modalidade_icms": "3",
+                                    "valor_icms": str((float(i.TOTAL)*12)/100)
+                                },
+                                "cofins_padrao": {
+                                    "cod_sit_trib_cofins": "01",
+                                    "tipo_calculo_cofins": "B",
+                                    "aliq_cofins": 7.6,
+                                    "base_cofins": str(i.TOTAL),
+                                    "valor_cofins": str((float(i.TOTAL)*7.6)/100)
+                                },
+                                "ipi": {
+                                    "cod_sit_trib_ipi": 53,
+                                    "enquadramento_ipi": "999"
+                                },
+                                "pis_padrao": {
+                                    "base_pis": str(i.TOTAL),
+                                    "valor_pis": str((float(i.TOTAL)*1.65)/100),
+                                    "cod_sit_trib_pis": "01",
+                                    "tipo_calculo_pis": "B",
+                                    "aliq_pis": 1.65
+                                },
                             },
-                            "cofins_padrao": {
-                                "cod_sit_trib_cofins": "01",
-                                "tipo_calculo_cofins": "B",
-                                "aliq_cofins": aliq_cofins,
-                                "base_cofins": str(i.TOTAL),
-                                "valor_cofins": str((float(i.TOTAL)*aliq_cofins)/100)
+                            "ide": {
+                                "codigo_item_integracao": str(codigo_pedido_integracao)
                             },
-                            "ipi": {
-                                "cod_sit_trib_ipi": 53,
-                                "enquadramento_ipi": "999"
+                            "inf_adic": {
+                                "peso_bruto": str(filtered_df_productos['peso_bruto'].iloc[0]),
+                                "peso_liquido": str(filtered_df_productos['peso_liq'].iloc[0])
                             },
-                            "pis_padrao": {
-                                "base_pis": str(i.TOTAL),
-                                "valor_pis": str((float(i.TOTAL)*aliq_pis)/100),
-                                "cod_sit_trib_pis": "01",
-                                "tipo_calculo_pis": "B",
-                                "aliq_pis": aliq_pis
-                            },
-                        },
-                        "ide": {
-                            "codigo_item_integracao": str(codigo_pedido_integracao)
-                        },
-                        "inf_adic": {
-                            "peso_bruto": str(filtered_df_productos['peso_bruto'].iloc[0]),
-                            "peso_liquido": str(filtered_df_productos['peso_liq'].iloc[0])
-                        },
-                        "produto": {
-                            # "cfop": str(filtered_df_productos['cfop'].iloc[0]),
-                            "cfop": str(6102),
-                            "codigo_produto": str(filtered_df_productos['codigo_produto'].iloc[0]),
-                            "descricao": str(filtered_df_productos['descricao'].iloc[0]),
-                            "ncm": str(filtered_df_productos['ncm'].iloc[0]),
-                            "quantidade": str(i.QUANTIDADE),
-                            "unidade":  str(filtered_df_productos['unidade'].iloc[0]),
-                            "valor_unitario": str(i.PRECO_UNITARIO)
+                            "produto": {
+                                # "cfop": str(filtered_df_productos['cfop'].iloc[0]),
+                                "cfop": str(6102),
+                                "codigo_produto": str(filtered_df_productos['codigo_produto'].iloc[0]),
+                                "descricao": str(filtered_df_productos['descricao'].iloc[0]),
+                                "ncm": str(filtered_df_productos['ncm'].iloc[0]),
+                                "quantidade": str(i.QUANTIDADE),
+                                "unidade":  str(filtered_df_productos['unidade'].iloc[0]),
+                                "valor_unitario": str(i.PRECO_UNITARIO)
+                            }
                         }
-                    }
-                precio_total = precio_total + float(i.PRECO_UNITARIO)
-                codigo_pedido_integracao = codigo_pedido_integracao + 1
-                array_productos.append(aux_productos)
+                    precio_total = precio_total + float(i.PRECO_UNITARIO)
+                    codigo_pedido_integracao = codigo_pedido_integracao + 1
+                    array_productos.append(aux_productos)
 
-            # RESPONSE A ENVIAR
-            aux = {
-                "cabecalho": {
-                    "codigo_cliente": str(filtered_df['codigo_cliente_omie'].iloc[0]),
-                    "codigo_pedido_integracao": data_pedido.PEDIDO,
-                    "data_previsao": fecha_formateada,
-                    "etapa": "10",
-                    "codigo_parcela": "A21",
-                    "quantidade_itens": str(pedido[2])
-                },
-                "det": array_productos,
-                "frete": {
-                    "modalidade": "0"
-                },
-                "informacoes_adicionais": {
-                    "codigo_categoria": cod_categoria,
-                    "codigo_conta_corrente": cod_conta_correinte,
-                    "consumidor_final": "N",
-                    "enviar_email": "N",
-                    "dados_adicionais_nf": "ENTREGA NO ENDERECO: CEASA, AV. BRASIL, 19001 - PAVILHAO 56 - IRAJA, RIO DE JANEIRO - RJ, 21530-300"
-                },
+            if len(filtered_df['codigo_cliente_omie']) > 0:
+                # RESPONSE A ENVIAR
+                aux = {
+                    "cabecalho": {
+                        "codigo_cliente": str(filtered_df['codigo_cliente_omie'].iloc[0]),
+                        "codigo_pedido_integracao": data_pedido.PEDIDO,
+                        "data_previsao": fecha_formateada,
+                        "etapa": "10",
+                        "codigo_parcela": "A21",
+                        "quantidade_itens": str(pedido[2])
+                    },
+                    "det": array_productos,
+                    "observacoes": {
+                        "obs_venda":  "Data do pedido:" + fecha_formateada + "Hora do pedido:" + hora_formateada
+                    },
+                    "frete": {
+                        "modalidade": "0"
+                    },
+                    "informacoes_adicionais": {
+                        "codigo_categoria": cod_categoria,
+                        "codigo_conta_corrente": cod_conta_correinte,
+                        "consumidor_final": "N",
+                        "enviar_email": "N",
+                        "dados_adicionais_nf": "ENTREGA NO ENDERECO: CEASA, AV. BRASIL, 19001 - PAVILHAO 56 - IRAJA, RIO DE JANEIRO - RJ, 21530-300"
+                    },
 
-            }
-            try:
-                response = sendPedido(aux)
+                }
 
-                add_pedido_log = PedidoGenerate(
-                    ID = index,
-                    NRO_PEDIDO = response['codigo_pedido'],
-                    CODIGO_PEDIDO = data_pedido.PEDIDO,
-                    CODIGO_PEDIDO_INTEGRACION_OMIE = data_pedido.PEDIDO,
-                    DISTRIBUIDOR = data_pedido.CNPJ_DISTRIBUIDOR,
-                    FECHA_ENVIO = fecha_formateada,
-                    CODIGO_ESTADO = response['codigo_status'],
-                    ESTADO_PEDIDO = response['descricao_status'],
-                    NRO_ITEMS = str(pedido[2]),
-                    TOTAL_PEDIDO = precio_total,
-                    CNPJ_CLIENTE = cnpj_cliente,
-                    CODIGO_CLIENTE_OMIE = str(filtered_df['codigo_cliente_omie'].iloc[0]),
-                    JSON_ENVIO = aux
-                )
-
-                db.session.add(add_pedido_log)
-                connection.commit()
-                db.session.commit()
-
-
+                # Para almacenar los pedidos a enviar
                 pedidos.append(aux)
+                try:
+                    # response = sendPedido(aux)
 
-                index = index + 1
-            except:
-                index = index + 1
-    return "Pedido generado", 200
+
+
+                    # add_pedido_log = PedidoGenerateAux(
+                    #     ID = index,
+                    #     NRO_PEDIDO = response['codigo_pedido'],
+                    #     CODIGO_PEDIDO = data_pedido.PEDIDO,
+                    #     CODIGO_PEDIDO_INTEGRACION_OMIE = data_pedido.PEDIDO,
+                    #     DISTRIBUIDOR = data_pedido.CNPJ_DISTRIBUIDOR,
+                    #     FECHA_ENVIO = fecha_formateada,
+                    #     CODIGO_ESTADO = response['codigo_status'],
+                    #     ESTADO_PEDIDO = response['descricao_status'],
+                    #     NRO_ITEMS = str(pedido[2]),
+                    #     TOTAL_PEDIDO = precio_total,
+                    #     CNPJ_CLIENTE = cnpj_cliente,
+                    #     CODIGO_CLIENTE_OMIE = str(filtered_df['codigo_cliente_omie'].iloc[0]),
+                    #     JSON_ENVIO = aux
+                    # )
+                    #
+                    # db.session.add(add_pedido_log)
+                    # connection.commit()
+                    # db.session.commit()
+                    #
+                    #
+                    # pedidos.append(aux)
+
+                    index = index + 1
+                except:
+                    index = index + 1
+
+    auxResponse = {
+        "numPedidos": len(pedidos),
+        "queryPedidos": pedidos,
+    }
+    return auxResponse, 200
 
 def limpiar_pedidos_temp():
     delete = connection.execute(text('''delete from pedidos_temp '''))
     connection.commit()
     db.session.commit()
 
+def gestorPedido(pedido):
+    cabecalho = pedido.get('cabecalho')
+    codigo_pedido_integracao = cabecalho.get('codigo_pedido_integracao')
+    fecha_envio = cabecalho.get('data_previsao')
+    nro_items = cabecalho.get('quantidade_itens')
+    codigo_cliente = cabecalho.get('codigo_cliente')
+    response = sendPedido(pedido)
+    auxPedidos = PedidosTemp.query.filter_by(PEDIDO=codigo_pedido_integracao).first()
+    index = db.session.query(func.max(PedidoGenerate.ID)).scalar()
+
+    add_pedido_log = PedidoGenerate(
+        ID=index + 1,
+        NRO_PEDIDO=response['codigo_pedido'],
+        CODIGO_PEDIDO=codigo_pedido_integracao,
+        CODIGO_PEDIDO_INTEGRACION_OMIE=codigo_pedido_integracao,
+        DISTRIBUIDOR=auxPedidos.CNPJ_DISTRIBUIDOR,
+        FECHA_ENVIO=fecha_envio,
+        CODIGO_ESTADO=response['codigo_status'],
+        ESTADO_PEDIDO=response['descricao_status'],
+        NRO_ITEMS=str(nro_items),
+        TOTAL_PEDIDO=auxPedidos.TOTAL,
+        CNPJ_CLIENTE=auxPedidos.CNPJ_CLIENTE,
+        CODIGO_CLIENTE_OMIE=codigo_cliente,
+        JSON_ENVIO=pedido
+    )
+
+    db.session.add(add_pedido_log)
+    connection.commit()
+    db.session.commit()
+
+    if response['codigo_pedido'] != '':
+        result_delete = connection.execute(text('''DELETE FROM pedidos_temp WHERE "PEDIDO" = '{}' '''.format(codigo_pedido_integracao)))
+        connection.commit()
+        db.session.commit()
+
+
 def sendPedido(pedido):
-    print(pedido)
     aux = None
     array = [pedido]
     headers = {'Content-type': 'application/json'}
