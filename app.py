@@ -1233,6 +1233,16 @@ def ejecutar_GenerarPedido():
 
             if len(filtered_df['codigo_cliente_omie']) > 0:
                 # RESPONSE A ENVIAR
+                fechaPedido = ''
+                horaPedido = ''
+                if data_pedido.ENVIO:
+                    try:
+                        aux = data_pedido.ENVIO.split('-')
+                        fechaPedido = aux[0] + '-' + aux[1] + '-' + aux[2]
+                        horaPedido = aux[3]
+                    except:
+                        fechaPedido = ''
+                        horaPedido = ''
                 aux = {
                     "cabecalho": {
                         "codigo_cliente": str(filtered_df['codigo_cliente_omie'].iloc[0]),
@@ -1244,7 +1254,7 @@ def ejecutar_GenerarPedido():
                     },
                     "det": array_productos,
                     "observacoes": {
-                        "obs_venda":  "Data do pedido:" + fecha_formateada + "Hora do pedido:" + hora_formateada
+                        "obs_venda":  "Data do pedido:" + fechaPedido + " - Hora do pedido:" + horaPedido
                     },
                     "frete": {
                         "modalidade": "0"
