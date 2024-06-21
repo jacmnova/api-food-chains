@@ -58,14 +58,22 @@ app = Flask(__name__)
 CORS(app)
 
 # Configurar la URI de la base de datos PostgreSQL
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:BkWxI71VKKQ3hEiDDqJV@containers-us-west-197.railway.app:7764/railway'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:BkWxI71VKKQ3hEiDDqJV@foodchains-hub.cvc6fic9cofz.us-east-1.rds.amazonaws.com:5432/postgres'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-engine = create_engine('postgresql://postgres:BkWxI71VKKQ3hEiDDqJV@containers-us-west-197.railway.app:7764/railway')
+engine = create_engine('postgresql://postgres:BkWxI71VKKQ3hEiDDqJV@foodchains-hub.cvc6fic9cofz.us-east-1.rds.amazonaws.com:5432/postgres')
 connection = engine.connect()
+
+# LOCALHOST
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:jacm1212@localhost:5432/foodChain'
+# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# engine = create_engine('postgresql://postgres:jacm1212@localhost:5432/foodChain')
+# connection = engine.connect()
+
+
 
 # Credenciales OMIE PRODUCCION
 app_key = "3458207541789"
-app_secret = "86976b5e3bdccbd7063e5c1666d6b039"
+app_secret = "5c82fb19f27b79022420f2cf12bb1ae9"
 cod_categoria = '1.01.01'
 cod_conta_correinte = '10116665761'
 
@@ -79,13 +87,6 @@ cod_conta_correinte = '10116665761'
 #URLS BASE
 URL_OMIE = 'https://app.omie.com.br/api/v1'
 
-# Configuracion Local
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:jacm1212@localhost:5432/foodChains'
-# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# engine = create_engine('postgresql://postgres:jacm1212@localhost:5432/foodChains')
-# connection = engine.connect()
-
-
 # Crear el objeto SQLAlchemy
 db = SQLAlchemy(app)
 
@@ -93,8 +94,8 @@ db = SQLAlchemy(app)
 ma = Marshmallow(app)
 
 # Configurar la clave secreta para la aplicación y el jwt
-app.secret_key = key.SECRET_KEY
-jwt_secret_key = key.SECRET_KEY
+app.secret_key = 'SAUYaDprglIDKIX53LUDpzl1cOAp4Lts'
+jwt_secret_key = 'SAUYaDprglIDKIX53LUDpzl1cOAp4Lts'
 
 # Crear el gestor de login
 login_manager = LoginManager()
@@ -602,7 +603,7 @@ def sendMailUser(username, mensaje, header):
     smtp_password = 'uwjcvjbjoxjmfkjf'
 
     # Datos del mensaje
-    from_addr = 'niveabrproyect@gmail.com'
+    from_addr = 'foodchainsapp@gmail.com'
     to_addr = username
     subject = header
     body = mensaje
