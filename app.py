@@ -600,7 +600,7 @@ def sendMailUser(username, mensaje, header):
     smtp_server = 'smtp.gmail.com'
     smtp_port = 587
     smtp_username = 'foodchainsapp@gmail.com'
-    smtp_password = 'uwjcvjbjoxjmfkjf'
+    smtp_password = 'rlgfcgnqerrtuhij'
 
     # Datos del mensaje
     from_addr = 'foodchainsapp@gmail.com'
@@ -1475,4 +1475,4 @@ with app.app_context():
 
 # Ejecutar la aplicación si se ejecuta este archivo
 if __name__ == "__main__":
-    app.run(host="0.0.0.0")
+    app.run(host="0.0.0.0", port=8000)
